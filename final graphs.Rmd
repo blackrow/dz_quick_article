@@ -1,0 +1,251 @@
+---
+title: "first try"
+author: "Dr. ASRI"
+date: "2023-05-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R packages
+
+```{r}
+library(readxl)
+library(tidyverse)
+library(ggthemes)
+library(patchwork)
+```
+
+## data 
+
+```{r}
+data <- read_excel("M, Faire 05 graphes.xlsx", sheet = "Sheet1")
+```
+
+## first page 
+
+### 1.1 imports
+
+```{r}
+p1 <- data %>% 
+  mutate(Year = as.numeric(Year)) %>% 
+  mutate(period = as.factor(case_when(Year <= 2004 ~ "2000-2004",
+                                      Year > 2004 & Year <= 2009 ~ "2005-2009",
+                                      Year > 2009 & Year <= 2014 ~ "2010-2014",
+                                      Year > 2014 & Year <= 2017 ~ "2015-2017",
+                                      TRUE ~ "2018-2021"))) %>% 
+  filter(Year <= 2017) %>% 
+  group_by(Country, period) %>% 
+  summarize(Imports_ICT_goods = mean(Imports_ICT_goods, na.rm = T), .groups = "drop") %>% 
+  ggplot(aes(x = period, y = Imports_ICT_goods, fill = fct_reorder(Country, Imports_ICT_goods))) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(values = c("green","red","blue","black")) +
+  coord_flip() +
+  theme_bw() +
+  labs(x = "Year", y = "Imports", fill = "Country",
+       title = "Imports of ICT goods, % of total trade in goods:  Algeria, Morocco, Tunisia \nand South Korea : 2000-2017")
+p1
+```
+
+
+### 1.2 Exports
+
+```{r}
+p2 <- data %>% 
+  mutate(Year = as.numeric(Year)) %>% 
+  mutate(period = as.factor(case_when(Year <= 2004 ~ "2000-2004",
+                                      Year > 2004 & Year <= 2009 ~ "2005-2009",
+                                      Year > 2009 & Year <= 2014 ~ "2010-2014",
+                                      Year > 2014 & Year <= 2017 ~ "2015-2017",
+                                      TRUE ~ "2018-2021"))) %>% 
+  filter(Year <= 2017) %>% 
+  group_by(Country, period) %>% 
+  summarize(Exports_ICT_goods = mean(Exports_ICT_goods, na.rm = T), .groups = "drop") %>% 
+  ggplot(aes(x = period, y = Exports_ICT_goods, fill = fct_reorder(Country, Exports_ICT_goods))) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(values = c("green","red","blue","black")) +
+  coord_flip() +
+  theme_bw() +
+  labs(x = "Year", y = "Exports", fill = "Country",
+       title = "Exports of ICT goods, % of total trade in goods:  Algeria, Morocco, Tunisia \nand South Korea : 2000-2017")
+p2
+```
+
+### combine
+
+```{r}
+p1 + p2
+```
+
+```{r}
+Import_name <- as_labeller(
+  c(`Exports_ICT_goods` = "Exports",
+    `Imports_ICT_goods` = "Imports")
+)
+
+p1 <- data %>% 
+  mutate(Year = as.numeric(Year)) %>% 
+  mutate(period = as.factor(case_when(Year <= 2004 ~ "2000-2004",
+                                      Year > 2004 & Year <= 2009 ~ "2005-2009",
+                                      Year > 2009 & Year <= 2014 ~ "2010-2014",
+                                      Year > 2014 & Year <= 2017 ~ "2015-2017",
+                                      TRUE ~ "2018-2021"))) %>% 
+  filter(Year <= 2017) %>% 
+  group_by(Country, period) %>% 
+  summarize(Exports_ICT_goods = mean(Exports_ICT_goods, na.rm = T), 
+            Imports_ICT_goods = mean(Imports_ICT_goods, na.rm = T),
+            .groups = "drop") %>% 
+  pivot_longer(cols = Exports_ICT_goods:Imports_ICT_goods, names_to = "Import_Export", values_to = "count") %>% 
+  ggplot(aes(x = period, y = count, fill = fct_reorder(Country, count))) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(values = c("red","green","blue","black")) +
+  facet_grid(~Import_Export, labeller = Import_name) +
+  coord_flip() +
+  theme_bw() +
+  labs(x = "Year", y = "Exports", fill = "Country",
+       title = "Exports and Imports of ICT goods, % of total trade in goods:  Algeria, \nMorocco, Tunisia and South Korea : 2000-2017")
+p1
+
+tiff("article1.tiff", units="in", width=7, height=5, res=200)
+p1
+dev.off()
+
+```
+
+## Second page
+
+```{r}
+
+Import_name <- as_labeller(
+  c(`Exports_ICT_services` = "Exports",
+    `Imports_ICT_services` = "Imports")
+)
+p2 <- data %>% 
+  mutate(Year = as.numeric(Year)) %>% 
+  mutate(period = as.factor(case_when(Year <= 2004 ~ "2000-2004",
+                                      Year > 2004 & Year <= 2009 ~ "2005-2009",
+                                      Year > 2009 & Year <= 2014 ~ "2010-2014",
+                                      Year > 2014 & Year <= 2017 ~ "2015-2017",
+                                      TRUE ~ "2018-2021"))) %>% 
+  filter(Year > 2004) %>% 
+  group_by(Country, period) %>% 
+  summarize(Exports_ICT_services = mean(Exports_ICT_services, na.rm = T), 
+            Imports_ICT_services = mean(Imports_ICT_services, na.rm = T),
+            .groups = "drop") %>% 
+  pivot_longer(cols = Exports_ICT_services:Imports_ICT_services, names_to = "Import_Export", values_to = "count") %>% 
+  ggplot(aes(x = period, y = count, fill = fct_reorder(Country, count))) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(values = c("black","red","blue","green")) +
+  facet_grid(~Import_Export, labeller = Import_name, scales = "free_x") +
+  coord_flip() +
+  theme_bw() +
+  labs(x = "Year", y = "Exports", fill = "Country",
+       title = "Exports and Imports of ICT services, % of total trade in goods:  Algeria, \nMorocco, Tunisia and South Korea : 2005-2021")
+
+tiff("article2.tiff", units="in", width=7, height=5, res=200)
+p2
+dev.off()
+```
+### third page
+
+```{r}
+Import_name <- as_labeller(
+  c(`Exports_dig_del_per` = "Exports",
+    `Imports_dig_del_per` = "Imports")
+)
+
+p3 <- data %>% 
+  mutate(Year = as.numeric(Year)) %>% 
+  mutate(period = as.factor(case_when(Year <= 2004 ~ "2000-2004",
+                                      Year > 2004 & Year <= 2009 ~ "2005-2009",
+                                      Year > 2009 & Year <= 2014 ~ "2010-2014",
+                                      Year > 2014 & Year <= 2017 ~ "2015-2017",
+                                      TRUE ~ "2018-2021"))) %>% 
+  filter(Year > 2004) %>% 
+  group_by(Country, period) %>% 
+  summarize(Exports_dig_del_per = mean(Exports_dig_del_per, na.rm = T), 
+            Imports_dig_del_per = mean(Imports_dig_del_per, na.rm = T),
+            .groups = "drop") %>% 
+  pivot_longer(cols = Exports_dig_del_per:Imports_dig_del_per, names_to = "Import_Export", values_to = "count") %>% 
+  ggplot(aes(x = period, y = count, fill = fct_reorder(Country, count))) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(values = c("blue","green","black","red")) +
+  facet_grid(~Import_Export, labeller = Import_name, scales = "free_x") +
+  coord_flip() +
+  theme_bw() +
+  labs(x = "Year", y = "Exports", fill = "Country",
+       title = "Exports and Imports of digitally deliverable services, % of total trade in \ngoods:  Algeria, Morocco, Tunisia and South Korea : 2005-2021")
+
+p3
+
+tiff("article3.tiff", units="in", width=7, height=5, res=200)
+p3
+dev.off()
+```
+
+### fourth page
+
+```{r}
+p4 <- data %>% 
+  mutate(Year = as.numeric(Year)) %>% 
+  mutate(period = as.factor(case_when(Year <= 2005 ~ "2000-2005",
+                                      Year > 2005 & Year <= 2009 ~ "2006-2009",
+                                      Year > 2009 & Year <= 2014 ~ "2010-2014",
+                                      Year > 2014 & Year <= 2017 ~ "2015-2017",
+                                      TRUE ~ "2018-2021"))) %>% 
+  filter(Year >2005) %>% 
+  group_by(Country, period) %>% 
+  summarize(Imports_service_tic = mean(Imports_service_tic, na.rm = T),
+            Exports_service_tic = mean(Exports_service_tic, na.rm = T),
+            BC_service = Exports_service_tic- Imports_service_tic,
+            .groups = "drop") %>% 
+  ggplot(aes(x = period, y = BC_service, fill = fct_reorder(Country, BC_service))) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(values = c("red","black","blue","green")) +
+  coord_flip() +
+  theme_bw() +
+  labs(x = "Year", y = "Trade Balance", fill = "Country",
+       title = "Trade balance of ICT services in Millions USD :  Algeria, Morocco, Tunisia \nand South Korea : 2006-2021")
+
+p4
+
+tiff("article4.tiff", units="in", width=7, height=5, res=200)
+p4
+dev.off()
+
+
+```
+
+### Fifth page
+
+```{r}
+p5 <- data %>% 
+  mutate(Year = as.numeric(Year)) %>% 
+  mutate(period = as.factor(case_when(Year <= 2004 ~ "2000-2004",
+                                      Year > 2004 & Year <= 2009 ~ "2005-2009",
+                                      Year > 2009 & Year <= 2014 ~ "2010-2014",
+                                      Year > 2014 & Year <= 2017 ~ "2015-2017",
+                                      TRUE ~ "2018-2021"))) %>% 
+  filter(Year >2005) %>% 
+  group_by(Country, period) %>% 
+  summarize(Imports_dig_del = mean(Imports_dig_del, na.rm = T),
+            Exports_dig_del = mean(Exports_dig_del, na.rm = T),
+            BC_dig_del = Exports_dig_del- Imports_dig_del,
+            .groups = "drop") %>% 
+  ggplot(aes(x = period, y = BC_dig_del, fill = fct_reorder(Country, BC_dig_del))) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(values = c("black","red","blue","green")) +
+  coord_flip() +
+  theme_bw() +
+  labs(x = "Year", y = "Trade Balance", fill = "Country",
+       title = "Trade balance of digitally deliverables services in Millions USD :  Algeria, \nMorocco, Tunisia and South Korea : 2006-2021")
+
+p5
+
+tiff("article5.tiff", units="in", width=7, height=5, res=200)
+p5
+dev.off()
+```
+
